@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NewAPI Monitor</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <section id="auth-view" class="auth-view" aria-live="polite">
+    <div class="brand-mark" aria-hidden="true">N</div>
+    <h1>NewAPI Monitor</h1>
+    <p id="auth-message">正在验证登录链接...</p>
+  </section>
+
+  <div id="app-view" class="app-view" hidden>
+    <header class="topbar">
+      <div class="brand-lockup">
+        <span class="brand-mark brand-mark-small" aria-hidden="true">N</span>
+        <div>
+          <strong>NewAPI Monitor</strong>
+          <span>多站余额与分组倍率监控</span>
+        </div>
+      </div>
+      <nav class="view-tabs" role="tablist" aria-label="管理视图">
+        <button id="dashboard-tab" class="view-tab" type="button" role="tab" aria-selected="true" aria-controls="dashboard-section">总览</button>
+        <button id="config-tab" class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="config-section">站点配置</button>
+      </nav>
+      <span class="session-state"><span class="status-dot status-dot-online"></span>主人会话</span>
+    </header>
+
+    <main id="dashboard-section" class="dashboard-section" role="tabpanel" aria-labelledby="dashboard-tab">
+      <div class="dashboard-heading">
+        <div>
+          <span class="eyebrow">运行数据</span>
+          <h1>站点总览</h1>
+          <p id="dashboard-updated">正在读取最新数据...</p>
+        </div>
+        <button id="dashboard-refresh" class="secondary-button dashboard-refresh" type="button">
+          <span aria-hidden="true">↻</span>
+          <span id="dashboard-refresh-text">刷新</span>
+        </button>
+      </div>
+
+      <section class="dashboard-summary" aria-label="总体指标">
+        <div class="summary-metric">
+          <span>站点数量</span>
+          <strong id="dashboard-site-count">0</strong>
+          <small>全部已配置站点</small>
+        </div>
+        <div class="summary-metric">
+          <span>总余额</span>
+          <strong id="dashboard-total-balance">--</strong>
+          <small id="dashboard-balance-scope">等待账户数据</small>
+        </div>
+        <div class="summary-metric">
+          <span>日志数据完整</span>
+          <strong id="dashboard-analytics-count">0 / 0</strong>
+          <small>1 小时与 24 小时均可用</small>
+        </div>
+      </section>
+
+      <section class="dashboard-sites-section" aria-labelledby="dashboard-sites-title">
+        <div class="dashboard-section-heading">
+          <h2 id="dashboard-sites-title">站点运行数据</h2>
+          <span>消费日志口径</span>
+        </div>
+        <div class="dashboard-table-wrap">
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th scope="col">站点</th>
+                <th scope="col">当前余额</th>
+                <th scope="col">近 1 小时</th>
+                <th scope="col">近 24 小时</th>
+                <th scope="col">状态</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-sites">
+              <tr>
+                <td colspan="5"><span class="dashboard-empty">正在读取站点数据...</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="config-section" class="workspace" role="tabpanel" aria-labelledby="config-tab" hidden>
+      <aside class="site-panel" aria-label="站点列表">
+        <div class="panel-heading">
+          <div>
+            <h2>监控站点</h2>
+            <span id="site-count">0 个站点</span>
+          </div>
+          <button id="add-button" class="icon-command" type="button" aria-label="添加站点" title="添加站点">+</button>
+        </div>
+        <div id="site-list" class="site-list"></div>
+      </aside>
+
+      <main class="editor-main">
+        <section id="empty-state" class="empty-state">
+          <span class="empty-symbol" aria-hidden="true">+</span>
+          <h2>添加第一个监控站点</h2>
+          <p>站点配置保存后，每分钟自动检查余额与所选分组倍率。</p>
+          <button id="empty-add-button" class="primary-button" type="button">添加站点</button>
+        </section>
+
+        <section id="editor-section" class="editor-section" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">站点配置</span>
+              <h1 id="editor-title">未命名站点</h1>
+              <p id="site-runtime">尚无监控记录</p>
+            </div>
+            <label class="toggle-control">
+              <input id="enabled-input" name="enabled" type="checkbox">
+              <span>启用监控</span>
+            </label>
+          </div>
+
+          <form id="site-form" novalidate>
+            <div class="form-section">
+              <h2>站点身份</h2>
+              <div class="field-grid">
+                <label class="field">
+                  <span>站点名称</span>
+                  <input id="name-input" name="name" type="text" autocomplete="off" required placeholder="例如：主站">
+                </label>
+                <label class="field field-wide">
+                  <span>站点 URL</span>
+                  <input id="url-input" name="baseUrl" type="url" autocomplete="url" required placeholder="https://api.example.com">
+                  <small>可直接粘贴带 /log、/api 或控制台路径的地址，测试或保存时会自动整理。</small>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h2>访问凭据</h2>
+              <div class="field-grid credentials-grid">
+                <label class="field">
+                  <span>New API 用户 ID</span>
+                  <input id="user-id-input" name="userId" type="number" min="1" step="1" inputmode="numeric" required placeholder="例如：7">
+                </label>
+                <label class="field">
+                  <span>个人系统访问令牌</span>
+                  <input id="token-input" name="accessToken" type="password" autocomplete="new-password" placeholder="粘贴系统访问令牌">
+                  <small id="token-help">在 New API 个人设置的“系统访问令牌”处获取，并填写对应用户 ID。</small>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="section-heading-row">
+                <h2>监控规则</h2>
+                <span>每分钟检查一次</span>
+              </div>
+              <div class="field-grid rules-grid">
+                <label class="field">
+                  <span>额度换算值</span>
+                  <input id="quota-input" name="quotaPerUnit" type="number" min="0.00000001" step="any" required>
+                  <small>接口 quota 除以此值后显示为余额。</small>
+                </label>
+                <label class="field">
+                  <span>余额预警阈值</span>
+                  <input id="threshold-input" name="balanceThreshold" type="number" min="0" step="any" required>
+                  <small>跌破时提醒一次，恢复后自动复位。</small>
+                </label>
+                <div class="field">
+                  <span>倍率监控分组</span>
+                  <div id="group-select" class="group-options" role="group" aria-label="倍率监控分组" aria-disabled="true">
+                    <span class="group-empty">请先测试连通性</span>
+                  </div>
+                  <small>可多选；各分组首次建立基线，之后每次变化都会分别提醒。</small>
+                </div>
+              </div>
+            </div>
+
+            <div id="connection-result" class="result-band" role="status" hidden></div>
+
+            <div class="form-actions">
+              <button id="delete-button" class="danger-button" type="button">删除站点</button>
+              <div class="action-group">
+                <button id="test-button" class="secondary-button" type="button">测试连通性并获取分组</button>
+                <button id="save-button" class="primary-button" type="submit">保存配置</button>
+              </div>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="status-region" class="status-region" aria-live="polite" aria-atomic="true"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+web:
+  host: "127.0.0.1"
+  port: 25095
+  publicUrl: "http://127.0.0.1:25095"
+  loginTokenTtlSeconds: 300
+  sessionTtlSeconds: 3600
+
+monitor:
+  cron: "0 * * * * *"
+  concurrency: 3
+  timeoutMs: 10000
+
+sites: []
