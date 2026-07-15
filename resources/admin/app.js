@@ -131,7 +131,14 @@ function renderDashboard(dashboard) {
     })
     const host = document.createElement('small')
     host.textContent = site.host
-    siteCell.append(siteButton, host)
+    const openSite = document.createElement('a')
+    openSite.className = 'secondary-button dashboard-open-site'
+    openSite.textContent = '打开网站'
+    openSite.href = site.baseUrl
+    openSite.target = '_blank'
+    openSite.rel = 'noopener noreferrer'
+    openSite.referrerPolicy = 'no-referrer'
+    siteCell.append(siteButton, host, openSite)
 
     const balanceCell = document.createElement('td')
     balanceCell.dataset.label = '当前余额'
@@ -437,7 +444,28 @@ async function saveConfig(event) {
     })
     state.dashboard = null
     selectSite(site.id)
-    showStatus('配置已保存，监控任务将在下一分钟使用新配置', 'success')
+    const savedSite = state.config.sites.find(item => item.id === site.id)
+    if (!savedSite?.enabled) {
+      showStatus('配置已保存，站点监控已停用', 'success')
+      return
+    }
+
+    try {
+      const check = await api('/api/sites/check', {
+        method: 'POST',
+        body: JSON.stringify({ id: site.id }),
+      })
+      if (check.alertSent) {
+        showStatus('配置已保存，检测到余额低于阈值，已发送提醒', 'success')
+      } else if (check.status === 'checked' && check.result?.ok) {
+        showStatus('配置已保存，已完成即时检查', 'success')
+      } else {
+        const message = check.result?.error || '未知错误'
+        showStatus(`配置已保存，但即时检查失败：${message}`, 'error')
+      }
+    } catch (checkError) {
+      showStatus(`配置已保存，但即时检查失败：${checkError.message}`, 'error')
+    }
   } catch (error) {
     showStatus(error.message, 'error')
   } finally {
