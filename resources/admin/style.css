@@ -947,43 +947,6 @@ select:focus-visible {
   transform: translateY(-2px) scale(1.02);
 }
 
-.status-region {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 50;
-  max-width: min(420px, calc(100vw - 40px));
-  padding: 16px 20px;
-  border: 3px solid var(--border);
-  border-radius: 1.25rem;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.5;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(12px);
-  transition: opacity 160ms ease, transform 160ms ease;
-  overflow-wrap: anywhere;
-}
-
-.status-region.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.status-region.success {
-  border-color: var(--green);
-  color: var(--green);
-}
-
-.status-region.error {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
 @media (max-width: 900px) {
   .dashboard-section {
     padding: 30px 28px 44px;
@@ -1186,4 +1149,83 @@ select:focus-visible {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.status-region {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  z-index: 50;
+  max-width: min(420px, calc(100vw - 40px));
+  padding: 16px 20px;
+  border: 3px solid var(--border);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -12px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  overflow-wrap: anywhere;
+}
+
+.status-region.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.status-region.success {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.status-region.error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.confirm-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: start center;
+  padding: 84px 20px 20px;
+  background: rgba(44, 62, 80, 0.28);
+}
+
+.confirm-dialog[hidden] {
+  display: none;
+}
+
+.confirm-dialog-card {
+  width: min(440px, 100%);
+  padding: 24px;
+  border: 3px solid var(--border);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  box-shadow: 5px 5px 0 var(--border);
+}
+
+.confirm-dialog-card h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.confirm-dialog-card p {
+  margin: 12px 0 20px;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

@@ -8,13 +8,13 @@ function number(value) {
 function formatSummary(item) {
   if (!item.ok && !item.groups?.length) {
     return [
-      `[NewAPI] ${item.siteName} (${item.host})`,
+      `[${item.type === 'sub2api' ? 'Sub2API' : 'NewAPI'}] ${item.siteName} (${item.host})`,
       `查询失败：${item.error}`,
     ].join('\n')
   }
 
   const lines = [
-    `[NewAPI] ${item.siteName} (${item.host})`,
+    `[${item.type === 'sub2api' ? 'Sub2API' : 'NewAPI'}] ${item.siteName} (${item.host})`,
     `余额：${number(item.balance)} / 阈值 ${number(item.threshold)}`,
     `监控分组：${item.groups.map(group => group.key).join('、')}`,
     ...item.groups.map(group => `- ${group.label} (${group.key})：${number(group.ratio)}`),

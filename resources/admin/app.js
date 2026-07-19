@@ -27,11 +27,15 @@ const elements = {
   form: document.querySelector('#site-form'),
   enabled: document.querySelector('#enabled-input'),
   name: document.querySelector('#name-input'),
+  type: document.querySelector('#site-type-input'),
   baseUrl: document.querySelector('#url-input'),
   userId: document.querySelector('#user-id-input'),
+  userIdLabel: document.querySelector('#user-id-label'),
   token: document.querySelector('#token-input'),
+  tokenLabel: document.querySelector('#token-label'),
   tokenHelp: document.querySelector('#token-help'),
   quota: document.querySelector('#quota-input'),
+  quotaHelp: document.querySelector('#quota-help'),
   threshold: document.querySelector('#threshold-input'),
   group: document.querySelector('#group-select'),
   connectionResult: document.querySelector('#connection-result'),
@@ -39,6 +43,10 @@ const elements = {
   testButton: document.querySelector('#test-button'),
   deleteButton: document.querySelector('#delete-button'),
   status: document.querySelector('#status-region'),
+  confirmDialog: document.querySelector('#confirm-dialog'),
+  confirmMessage: document.querySelector('#confirm-dialog-message'),
+  confirmCancel: document.querySelector('#confirm-cancel'),
+  confirmDelete: document.querySelector('#confirm-delete'),
 }
 
 const state = {
@@ -252,7 +260,13 @@ function checkedGroups() {
 function updateSelectedFromForm() {
   const site = selectedSite()
   if (!site) return
+  const previousType = site.type || 'newapi'
   site.name = elements.name.value
+  site.type = elements.type.value
+  if (site.type !== previousType) {
+    state.knownGroups.delete(site.id)
+    site.monitoredGroups = []
+  }
   site.baseUrl = elements.baseUrl.value
   site.userId = elements.userId.value
   site.accessToken = elements.token.value
@@ -260,8 +274,26 @@ function updateSelectedFromForm() {
   site.balanceThreshold = elements.threshold.value
   if (state.knownGroups.has(site.id)) site.monitoredGroups = checkedGroups()
   site.enabled = elements.enabled.checked
+  updateProviderFields(site)
   elements.editorTitle.textContent = site.name.trim() || '未命名站点'
   renderSites()
+}
+
+function updateProviderFields(site) {
+  const isSub2 = site.type === 'sub2api'
+  elements.userId.disabled = isSub2
+  elements.userId.required = !isSub2
+  elements.quota.disabled = isSub2
+  elements.quota.required = !isSub2
+  elements.userIdLabel.textContent = isSub2 ? 'NewAPI 用户 ID（不适用）' : 'NewAPI 用户 ID'
+  elements.tokenLabel.textContent = isSub2 ? 'Sub2API API Key' : '个人系统访问令牌 / API Key'
+  elements.tokenHelp.textContent = isSub2
+    ? 'Sub2API：填写平台签发的 API Key，请求时通过 x-api-key 发送。'
+    : 'NewAPI：在个人设置的“系统访问令牌”处获取，并填写对应用户 ID。'
+  elements.quotaHelp.textContent = isSub2
+    ? 'Sub2API 直接使用 /v1/usage 返回的 USD 余额，此字段不参与换算。'
+    : 'NewAPI 接口 quota 除以此值后显示为余额。'
+  elements.testButton.textContent = isSub2 ? '测试连通性并获取当前倍率' : '测试连通性并获取分组'
 }
 
 function renderGroups(site) {
@@ -275,6 +307,31 @@ function renderGroups(site) {
       ? `当前：${selected.join('、')}（测试后可修改）`
       : '请先测试连通性'
     elements.group.append(placeholder)
+    elements.group.setAttribute('aria-disabled', 'true')
+    return
+  }
+
+  if (site.type === 'sub2api') {
+    const group = groups.find(item => item.key === '__sub2api_current_key__')
+      || { key: '__sub2api_current_key__', label: '当前 API Key', ratio: null }
+    site.monitoredGroups = [group.key]
+    const option = document.createElement('label')
+    option.className = 'group-option group-option-locked'
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.name = 'monitoredGroups'
+    checkbox.value = group.key
+    checkbox.checked = true
+    checkbox.disabled = true
+    const text = document.createElement('span')
+    text.className = 'group-option-text'
+    const title = document.createElement('span')
+    title.textContent = `${group.label} (${group.key})`
+    const detail = document.createElement('small')
+    detail.textContent = group.ratio === null ? '仅监控当前 API Key，倍率待测试' : `当前倍率 ${group.ratio}`
+    text.append(title, detail)
+    option.append(checkbox, text)
+    elements.group.append(option)
     elements.group.setAttribute('aria-disabled', 'true')
     return
   }
@@ -349,6 +406,7 @@ function selectSite(id) {
   elements.siteRuntime.textContent = runtimeText(site)
   elements.enabled.checked = site.enabled !== false
   elements.name.value = site.name || ''
+  elements.type.value = site.type || 'newapi'
   elements.baseUrl.value = site.baseUrl || ''
   elements.userId.value = site.userId || ''
   elements.token.value = ''
@@ -358,6 +416,7 @@ function selectSite(id) {
   elements.tokenHelp.textContent = site.accessTokenConfigured
     ? '令牌已配置，留空不会修改。在 New API 个人设置的“系统访问令牌”处可重新获取。'
     : '在 New API 个人设置的“系统访问令牌”处获取，并填写对应用户 ID。'
+  updateProviderFields(site)
   renderGroups(site)
   setConnectionResult('')
 }
@@ -367,6 +426,7 @@ function addSite() {
   state.config.sites.push({
     id,
     name: `站点 ${state.config.sites.length + 1}`,
+    type: 'newapi',
     baseUrl: '',
     userId: '',
     accessToken: '',
@@ -381,6 +441,13 @@ function addSite() {
 }
 
 function validateSite(site, { requireGroup = false } = {}) {
+  if (site.type === 'sub2api') {
+    if (!site.name.trim()) throw new Error('请填写站点名称')
+    if (!site.baseUrl.trim()) throw new Error('请填写站点 URL')
+    if (!site.accessToken.trim() && !site.accessTokenConfigured) throw new Error('请填写 Sub2API API Key')
+    if (!(Number(site.balanceThreshold) >= 0)) throw new Error('余额预警阈值不能小于 0')
+    return
+  }
   if (!site.name.trim()) throw new Error('请填写站点名称')
   if (!site.baseUrl.trim()) throw new Error('请填写站点 URL')
   if (!String(site.userId).trim()) throw new Error('请填写 New API 用户 ID')
@@ -403,6 +470,7 @@ async function testConnection() {
       method: 'POST',
       body: JSON.stringify({
         id: site.id,
+        type: site.type,
         baseUrl: site.baseUrl,
         userId: site.userId,
         accessToken: site.accessToken,
@@ -412,7 +480,9 @@ async function testConnection() {
     elements.baseUrl.value = result.baseUrl
     state.knownGroups.set(site.id, result.groups)
     renderGroups(site)
-    const balance = Number(result.account.quota) / Number(site.quotaPerUnit)
+    const balance = Number.isFinite(Number(result.balance))
+      ? Number(result.balance)
+      : Number(result.account.quota) / Number(site.quotaPerUnit)
     setConnectionResult([
       `连接成功 · ${result.latencyMs} ms`,
       `账户：${result.account.displayName || result.account.username || '未知'} · 当前分组 ${result.account.currentGroup}`,
@@ -475,9 +545,27 @@ async function saveConfig(event) {
   }
 }
 
+function confirmDeleteSite(name) {
+  elements.confirmMessage.textContent = `确定删除站点“${name || '未命名站点'}”吗？此操作不可撤销。`
+  elements.confirmDialog.hidden = false
+  elements.confirmDelete.focus()
+  return new Promise(resolve => {
+    const finish = value => {
+      elements.confirmDialog.hidden = true
+      elements.confirmCancel.removeEventListener('click', onCancel)
+      elements.confirmDelete.removeEventListener('click', onDelete)
+      resolve(value)
+    }
+    const onCancel = () => finish(false)
+    const onDelete = () => finish(true)
+    elements.confirmCancel.addEventListener('click', onCancel)
+    elements.confirmDelete.addEventListener('click', onDelete)
+  })
+}
+
 async function deleteSite() {
   const site = selectedSite()
-  if (!site || !window.confirm(`确定删除站点“${site.name || '未命名站点'}”吗？`)) return
+  if (!site || !await confirmDeleteSite(site.name)) return
   const previousConfig = structuredClone(state.config)
   const previousId = state.selectedId
   state.config.sites = state.config.sites.filter(item => item.id !== site.id)
